@@ -9,6 +9,7 @@ def check_schema(
     expected_columns: list[str],
     source_name: str,
     logger: logging.Logger,
+    
 ) -> None:
     """
     Compare actual DataFrame columns against expected schema.

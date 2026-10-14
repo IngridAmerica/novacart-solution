@@ -19,8 +19,15 @@ def _validate_df(
     quarantine_path: Path,
     logger: logging.Logger,
     source_name: str,
+    partition: str = "",
 ) -> pd.DataFrame:
-    """Validate each row with Pydantic. Good rows → Silver, bad rows → quarantine."""
+    """Validate each row with Pydantic. Good rows → Silver; invalid rows and
+    duplicates (all but the last occurrence of a primary key) → quarantine.
+
+    With ``partition`` (e.g. "dt=2025-11-09") quarantine goes to
+    ``<quarantine>/<source>/<partition>/<source>_bad.parquet`` and is replaced
+    on re-run of the same partition. Without it, a unique timestamped file is used.
+    """
     good, bad = [], []
     for _, row in df.iterrows():
         try:
@@ -32,22 +39,32 @@ def _validate_df(
             row_dict["_quarantined_at"] = datetime.now(timezone.utc).isoformat()
             bad.append(row_dict)
 
-    if bad:
-        q_dir = quarantine_path / source_name
-        q_dir.mkdir(parents=True, exist_ok=True)
-        ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
-        pd.DataFrame(bad).to_parquet(q_dir / f"{ts}.parquet", index=False)
-        log_event(logger, "WARNING", f"{source_name}_quarantined", count=len(bad))
-
     result = pd.DataFrame(good) if good else pd.DataFrame(columns=df.columns)
 
-    # Deduplicate on primary key — keep last occurrence
+    # Deduplicate on primary key — keep last occurrence, quarantine the rest
     if primary_key in result.columns and not result.empty:
-        before = len(result)
-        result = result.drop_duplicates(subset=[primary_key], keep="last")
-        dupes = before - len(result)
-        if dupes:
-            log_event(logger, "INFO", f"{source_name}_deduped", dropped=dupes)
+        dup_mask = result.duplicated(subset=[primary_key], keep="last")
+        dupes = result[dup_mask]
+        if not dupes.empty:
+            now = datetime.now(timezone.utc).isoformat()
+            for rec in dupes.to_dict("records"):
+                rec["_quarantine_reason"] = f"duplicate {primary_key}: {rec[primary_key]}"
+                rec["_quarantined_at"] = now
+                bad.append(rec)
+            result = result[~dup_mask]
+            log_event(logger, "INFO", f"{source_name}_deduped", dropped=len(dupes))
+
+    if bad:
+        if partition:
+            q_dir = quarantine_path / source_name / partition
+            q_file = q_dir / f"{source_name}_bad.parquet"
+        else:
+            q_dir = quarantine_path / source_name
+            ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
+            q_file = q_dir / f"{ts}.parquet"
+        q_dir.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame(bad).to_parquet(q_file, index=False)
+        log_event(logger, "WARNING", f"{source_name}_quarantined", count=len(bad))
 
     return result.reset_index(drop=True)
 
@@ -65,7 +82,8 @@ def build_silver_orders(
         return silver_dir / "orders" / f"date={date_str}" / "data.parquet"
 
     df = pd.read_parquet(src)
-    df = _validate_df(df, OrderRow, "order_id", quarantine_dir, logger, "orders")
+    df = _validate_df(df, OrderRow, "order_id", quarantine_dir, logger, "orders",
+                      partition=f"dt={date_str}")
 
     out_dir = silver_dir / "orders" / f"date={date_str}"
     out_dir.mkdir(parents=True, exist_ok=True)

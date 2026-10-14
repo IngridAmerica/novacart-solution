@@ -32,8 +32,11 @@ ORDERS = {
         ["ORD-003","CUST-003","PROD-001","2025-11-07","5","49.99","delivered"],
         # Bad row — quantity = 0 → quarantine
         ["ORD-004","CUST-001","PROD-003","2025-11-07","0","29.99","pending"],
+        # Bad row - customer_id is missing - quarantine
+        ["ORD-005","","PROD-003","2025-11-07","1","29.99","pending"],
         # Duplicate of ORD-001 — deduplicated in Silver
         ["ORD-001","CUST-001","PROD-001","2025-11-07","2","49.99","shipped"],
+        
     ],
     "2025-11-08": [
         ["order_id","customer_id","product_id","order_date","quantity","unit_price","status"],
@@ -80,6 +83,10 @@ customers = [
     {"customer_id": "CUST-005", "first_name": "Eve",    "last_name": "Davis",
      "email": "eve-at-example.com", "address": {"city": "Paris",     "country": "FR"},
      "signup_date": "2024-08-01", "tier": "gold"},
+    #Extra row 
+    {"customer_id": "CUST-006", "first_name": "Ava",  "middle_name":"America",  "last_name": "Davis",
+     "email": "ava@example.com", "address": {"city": "Paris",     "country": "FR"},
+     "signup_date": "2024-08-01", "tier": "gold"},
 ]
 
 cust_path = CUSTOMER_DIR / "customers.json"
@@ -106,6 +113,7 @@ products = [
     ("PROD-002", "Laptop Stand",        "Accessories",  8.75, "SUP-B", "2025-10-15T14:30:00"),
     ("PROD-003", "USB-C Hub",           "Electronics", 12.00, "SUP-A", "2025-11-01T09:00:00"),
     ("PROD-004", "Webcam HD",           "Electronics", 35.00, "SUP-C", "2025-11-05T11:15:00"),
+    ("PROD-005", "Monitor",           "Electronics", 50.00, "SUP-C", "2026-10-14T11:15:00"),
 ]
 conn.executemany(
     "INSERT INTO products VALUES (?,?,?,?,?,?)", products

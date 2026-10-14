@@ -91,10 +91,24 @@ def test_bad_rows_quarantined(config: Config):
     make_products_db(config.landing_products_db, [GOOD_PRODUCT])
 
     run_one_date(DATE, config)
-    q_files = list((config.quarantine / "orders").glob("*.parquet"))
-    assert q_files, "quarantine directory should contain at least one file"
-    q_df = pd.concat([pd.read_parquet(f) for f in q_files])
+    q_file = config.quarantine / "orders" / f"dt={DATE}" / "orders_bad.parquet"
+    assert q_file.exists(), "quarantine should contain orders_bad.parquet for the partition"
+    assert len(pd.read_parquet(q_file)) == 1
+
+
+def test_duplicates_quarantined(config: Config):
+    write_orders_csv(config.landing_orders, DATE, [
+        ["ORD-001","CUST-001","PROD-001",DATE,"2","49.99","shipped"],
+        ["ORD-001","CUST-001","PROD-001",DATE,"5","49.99","shipped"],  # kept (last)
+    ])
+    write_customers_json(config.landing_customers, [GOOD_CUSTOMER])
+    make_products_db(config.landing_products_db, [GOOD_PRODUCT])
+
+    run_one_date(DATE, config)
+    q_df = pd.read_parquet(config.quarantine / "orders" / f"dt={DATE}" / "orders_bad.parquet")
     assert len(q_df) == 1
+    assert q_df.iloc[0]["quantity"] == 2
+    assert "duplicate" in q_df.iloc[0]["_quarantine_reason"]
 
 
 def test_bad_rows_dont_reach_gold(config: Config):
