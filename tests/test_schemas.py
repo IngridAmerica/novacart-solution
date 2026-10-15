@@ -85,3 +85,10 @@ class TestProductRow:
     def test_zero_cost_allowed(self):
         row = ProductRow(**self._valid(unit_cost=0.0))
         assert row.unit_cost == 0.0
+
+    def test_missing_product_id_rejected(self):
+        data = self._valid()
+        data.pop("product_id")
+
+        with pytest.raises(ValidationError):
+            ProductRow(**data)
