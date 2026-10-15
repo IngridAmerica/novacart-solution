@@ -1,3 +1,25 @@
 .DS_Store
 .claude/
 Technical Docs/
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Pipeline-generated output
+data/bronze/
+data/silver/
+data/gold/
+data/quarantine/
+state/
+logs/
+
+# Python cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# OS
+Thumbs.db
+.idea/
+.vscode/
