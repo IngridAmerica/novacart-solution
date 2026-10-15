@@ -111,6 +111,34 @@ def test_duplicates_quarantined(config: Config):
     assert "duplicate" in q_df.iloc[0]["_quarantine_reason"]
 
 
+def test_bad_customer_quarantined(config: Config):
+    bad = {**GOOD_CUSTOMER, "customer_id": "CUST-002", "email": "no-at-sign"}
+    write_orders_csv(config.landing_orders, DATE, [
+        ["ORD-001","CUST-001","PROD-001",DATE,"2","49.99","shipped"],
+    ])
+    write_customers_json(config.landing_customers, [GOOD_CUSTOMER, bad])
+    make_products_db(config.landing_products_db, [GOOD_PRODUCT])
+
+    run_one_date(DATE, config)
+    q_df = pd.read_parquet(config.quarantine / "customers" / f"dt={DATE}" / "customers_bad.parquet")
+    assert list(q_df["customer_id"]) == ["CUST-002"]
+
+
+def test_bad_and_duplicate_products_quarantined(config: Config):
+    bad = ("PROD-002", "Gadget", "Electronics", -5.0, "SUP-A", "2025-01-01T00:00:00")
+    dup = ("PROD-001", "Widget v2", "Electronics", 11.0, "SUP-A", "2025-02-01T00:00:00")
+    write_orders_csv(config.landing_orders, DATE, [
+        ["ORD-001","CUST-001","PROD-001",DATE,"2","49.99","shipped"],
+    ])
+    write_customers_json(config.landing_customers, [GOOD_CUSTOMER])
+    make_products_db(config.landing_products_db, [GOOD_PRODUCT, bad, dup])
+
+    run_one_date(DATE, config)
+    q_df = pd.read_parquet(config.quarantine / "products" / f"dt={DATE}" / "products_bad.parquet")
+    assert sorted(q_df["product_id"]) == ["PROD-001", "PROD-002"]
+    assert any("duplicate" in r for r in q_df["_quarantine_reason"])
+
+
 def test_bad_rows_dont_reach_gold(config: Config):
     write_orders_csv(config.landing_orders, DATE, [
         ["ORD-001","CUST-001","PROD-001",DATE,"2","49.99","shipped"],

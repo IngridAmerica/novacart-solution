@@ -83,6 +83,10 @@ customers = [
     {"customer_id": "CUST-005", "first_name": "Eve",    "last_name": "Davis",
      "email": "eve-at-example.com", "address": {"city": "Paris",     "country": "FR"},
      "signup_date": "2024-08-01", "tier": "gold"},
+     # Bad row - duplication 
+    {"customer_id": "CUST-006", "first_name": "Eve",  "last_name": "Davis", "email": "eve@example.com", "address": {"city": "Paris",     "country": "FR"},
+     "signup_date": "2024-08-01", "tier": "gold"},
+     
     #Extra row 
     {"customer_id": "CUST-006", "first_name": "Ava",  "middle_name":"America",  "last_name": "Davis",
      "email": "ava@example.com", "address": {"city": "Paris",     "country": "FR"},

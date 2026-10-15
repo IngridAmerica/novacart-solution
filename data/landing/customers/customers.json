@@ -61,6 +61,18 @@
   },
   {
     "customer_id": "CUST-006",
+    "first_name": "Eve",
+    "last_name": "Davis",
+    "email": "eve@example.com",
+    "address": {
+      "city": "Paris",
+      "country": "FR"
+    },
+    "signup_date": "2024-08-01",
+    "tier": "gold"
+  },
+  {
+    "customer_id": "CUST-006",
     "first_name": "Ava",
     "middle_name": "America",
     "last_name": "Davis",

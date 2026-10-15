@@ -94,6 +94,7 @@ def build_silver_orders(
 
 
 def build_silver_customers(
+    date_str: str,
     bronze_dir: Path,
     silver_dir: Path,
     quarantine_dir: Path,
@@ -105,7 +106,8 @@ def build_silver_customers(
         return silver_dir / "customers" / "data.parquet"
 
     df = pd.read_parquet(src)
-    df = _validate_df(df, CustomerRow, "customer_id", quarantine_dir, logger, "customers")
+    df = _validate_df(df, CustomerRow, "customer_id", quarantine_dir, logger, "customers",
+                      partition=f"dt={date_str}")
 
     out_dir = silver_dir / "customers"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -116,6 +118,7 @@ def build_silver_customers(
 
 
 def build_silver_products(
+    date_str: str,
     bronze_dir: Path,
     silver_dir: Path,
     quarantine_dir: Path,
@@ -130,7 +133,8 @@ def build_silver_products(
     if df.empty:
         return silver_dir / "products" / "data.parquet"
 
-    df = _validate_df(df, ProductRow, "product_id", quarantine_dir, logger, "products")
+    df = _validate_df(df, ProductRow, "product_id", quarantine_dir, logger, "products",
+                      partition=f"dt={date_str}")
 
     out_dir = silver_dir / "products"
     out_dir.mkdir(parents=True, exist_ok=True)
